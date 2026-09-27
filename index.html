@@ -136,6 +136,12 @@ header{text-align:center;padding:70px 0 30px}
 .dc .who span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dc small{color:#aab1ff;font-size:12px;white-space:nowrap}
 
+.unit{color:var(--c);text-shadow:0 0 18px rgba(34,211,238,.5);margin-left:1px}
+.more-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:30px}
+.more-wrap small{color:var(--muted);font-size:13px}
+.more{padding:13px 30px;border-radius:14px;font-weight:700;letter-spacing:.05em;color:#fff;
+  background:linear-gradient(120deg,var(--v),var(--p));box-shadow:0 0 28px rgba(139,92,246,.4);transition:transform .2s,box-shadow .2s}
+.more:hover{transform:translateY(-2px);box-shadow:0 0 42px rgba(139,92,246,.6)}
 .empty{grid-column:1/-1;text-align:center;padding:70px 20px;color:var(--muted)}
 .empty .big{font-size:48px;margin-bottom:10px}
 
@@ -200,6 +206,7 @@ footer{text-align:center;color:#55516d;font-size:13px;padding:40px 0 30px}
   <div id="sectorWrap"></div>
   <div class="results-head" id="rhead"></div>
   <div class="cards" id="cards"></div>
+  <div id="more"></div>
 
   <footer>PSAG Market · contact sellers on Discord · trade safe</footer>
 </div>
@@ -232,7 +239,7 @@ function parsePrice(p){
 }
 function fmtPrice(n, raw){
   if (!isFinite(n)) return esc(raw ?? '—');
-  for (const [v,s] of [[1e12,'T'],[1e9,'B'],[1e6,'M'],[1e3,'K']]) if (n >= v) return +(n/v).toFixed(2) + s;
+  for (const [v,s] of [[1e12,'T'],[1e9,'B'],[1e6,'M'],[1e3,'K']]) if (n >= v) return +(n/v).toFixed(2) + `<span class="unit">${s}</span>`;
   return String(+n.toFixed(2));
 }
 function lev(a,b){
@@ -278,7 +285,8 @@ const CHAT = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke
 
 /* ---------- state ---------- */
 let listings = [];
-const state = { query:'', tags:new Set(), sort:'price-asc', item:null, active:-1, sugg:[] };
+const state = { query:'', tags:new Set(), sort:'price-asc', item:null, active:-1, sugg:[], shown:0, list:[] };
+const PAGE = 100;
 
 /* ---------- load ---------- */
 async function load(){
@@ -400,32 +408,52 @@ function renderSector(){
     </section>`;
 }
 
-function renderCards(){
-  const arr = visibleListings();
-  const head = $('#rhead');
-  const what = state.item ? 'offers' : 'listings';
-  head.innerHTML = `<div><b>${arr.length}</b> ${what}${state.query && !state.item ? ` matching “${esc(state.query)}”` : ''}</div>`;
-
-  if (!arr.length){
-    $('#cards').innerHTML = `<div class="empty"><div class="big">🔍</div>Nothing found. Try another name or remove some filters.</div>`;
-    return;
-  }
-  // cheapest per item gets a badge
-  const cheapest = new Map();
-  for (const l of arr) if (isFinite(l.price) && (!cheapest.has(l.key) || l.price < cheapest.get(l.key).price)) cheapest.set(l.key, l);
-  const counts = groupItems(arr);
-
-  $('#cards').innerHTML = arr.map((l, i) => {
-    const best = cheapest.get(l.key) === l && counts.get(l.key).count > 1;
-    return `
+function cardHTML(l, i, cheapest, counts){
+  const best = cheapest.get(l.key) === l && counts.get(l.key).count > 1;
+  return `
     <article class="card ${best?'best':''}" style="--i:${i}">
       ${best ? '<div class="badge">Best price</div>' : ''}
       <h3 data-item="${esc(l.key)}">${esc(l.name)}</h3>
       <div class="tags">${l.tags.map(t => `<span class="tag" data-tag="${esc(norm(t))}">#${esc(t)}</span>`).join('')}</div>
-      <div class="price">${GEM}${fmtPrice(l.price, l.priceRaw)}</div>
+      <div class="price">${GEM}<span>${fmtPrice(l.price, l.priceRaw)}</span></div>
       ${l.discord ? `<button class="dc" data-copy="${esc(l.discord)}"><span class="who">${CHAT}<span>${esc(l.discord)}</span></span><small>Copy</small></button>` : ''}
     </article>`;
-  }).join('');
+}
+
+function renderMore(){
+  const left = state.list.length - state.shown;
+  $('#more').innerHTML = left > 0
+    ? `<div class="more-wrap"><button class="more" id="loadMore">Load ${Math.min(PAGE, left)} more</button><small>Showing ${state.shown} of ${state.list.length}</small></div>`
+    : '';
+}
+
+function renderCards(){
+  const arr = state.list = visibleListings();
+  const what = state.item ? 'offers' : 'listings';
+  $('#rhead').innerHTML = `<div><b>${arr.length}</b> ${what}${state.query && !state.item ? ` matching “${esc(state.query)}”` : ''}</div>`;
+
+  if (!arr.length){
+    state.shown = 0;
+    $('#cards').innerHTML = `<div class="empty"><div class="big">🔍</div>Nothing found. Try another name or remove some filters.</div>`;
+    renderMore();
+    return;
+  }
+  // cheapest per item gets a badge
+  state.cheapest = new Map();
+  for (const l of arr) if (isFinite(l.price) && (!state.cheapest.has(l.key) || l.price < state.cheapest.get(l.key).price)) state.cheapest.set(l.key, l);
+  state.counts = groupItems(arr);
+
+  state.shown = Math.min(PAGE, arr.length);
+  $('#cards').innerHTML = arr.slice(0, state.shown).map((l, i) => cardHTML(l, i, state.cheapest, state.counts)).join('');
+  renderMore();
+}
+
+function loadMore(){
+  const from = state.shown, to = Math.min(from + PAGE, state.list.length);
+  $('#cards').insertAdjacentHTML('beforeend',
+    state.list.slice(from, to).map((l, i) => cardHTML(l, i, state.cheapest, state.counts)).join(''));
+  state.shown = to;
+  renderMore();
 }
 
 function renderAll(){
@@ -543,6 +571,7 @@ document.addEventListener('click', e => {
   }
   const it = e.target.closest('[data-item]');
   if (it){ selectItem(it.dataset.item); return; }
+  if (e.target.closest('#loadMore')){ loadMore(); return; }
   const c = e.target.closest('[data-copy]');
   if (c) copy(c.dataset.copy);
 });
