@@ -1,0 +1,16 @@
+[
+  { "name": "Dark Matter Pickaxe", "tags": ["tool", "pickaxe", "dark matter"], "price": "2.5B", "discord": "notnickatall" },
+  { "name": "Dark Matter Pickaxe", "tags": ["tool", "pickaxe", "dark matter"], "price": "2.2B", "discord": "gemlord" },
+  { "name": "Dark Matter Pickaxe", "tags": ["tool", "pickaxe", "dark matter"], "price": "2.9B", "discord": "psag_trader" },
+  { "name": "Rainbow Pickaxe", "tags": ["tool", "pickaxe", "rainbow"], "price": "450M", "discord": "gemlord" },
+  { "name": "Golden Pickaxe", "tags": ["tool", "pickaxe", "golden"], "price": "120M", "discord": "minerboi" },
+  { "name": "Huge Hell Rock", "tags": ["pet", "huge"], "price": "8B", "discord": "notnickatall" },
+  { "name": "Huge Hell Rock", "tags": ["pet", "huge", "shiny"], "price": "22B", "discord": "shinyhunter" },
+  { "name": "Huge Pixel Cat", "tags": ["pet", "huge"], "price": "5.5B", "discord": "psag_trader" },
+  { "name": "Titanic Balloon Dragon", "tags": ["pet", "titanic"], "price": "95B", "discord": "whale_mode" },
+  { "name": "Titanic Balloon Dragon", "tags": ["pet", "titanic", "golden"], "price": "140B", "discord": "gemlord" },
+  { "name": "Dark Matter Fishing Rod", "tags": ["tool", "fishing rod", "dark matter"], "price": "1.8B", "discord": "fishy" },
+  { "name": "Secret Key", "tags": ["item", "key"], "price": "35M", "discord": "minerboi" },
+  { "name": "Crystal Key", "tags": ["item", "key"], "price": "12M", "discord": "fishy" },
+  { "name": "Exclusive Egg", "tags": ["egg", "exclusive"], "price": "3B", "discord": "shinyhunter" }
+]
